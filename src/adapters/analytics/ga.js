@@ -1,5 +1,8 @@
 /**
  * ga.js - analytics adapter for google analytics
+ *
+ * Customization: GumtreeAU has modified this file to change GA Event Labels to include additional information.
+ * Customization Date: 22-04-2017
  */
 
 var events = require('./../../events');
@@ -197,7 +200,7 @@ function sendBidRequestToGa(bid) {
   if (bid && bid.bidderCode) {
     _analyticsQueue.push(function () {
       _eventCount++;
-      window[_gaGlobal](_trackerSend, 'event', _category, 'Requests', bid.bidderCode, 1, _disableInteraction);
+      window[_gaGlobal](_trackerSend, 'event', _category, 'Requests', getEventLabelFromBidder(bid.bidderCode), 1, _disableInteraction);
     });
   }
 
@@ -214,7 +217,7 @@ function sendBidResponseToGa(bid) {
       if (typeof bid.timeToRespond !== 'undefined' && _enableDistribution) {
         _eventCount++;
         var dis = getLoadTimeDistribution(bid.timeToRespond);
-        window[_gaGlobal](_trackerSend, 'event', 'Prebid.js Load Time Distribution', dis, bidder, 1, _disableInteraction);
+        window[_gaGlobal](_trackerSend, 'event', 'Prebid.js Load Time Distribution', dis, getEventLabelFromBidder(bidder), 1, _disableInteraction);
       }
 
       if (bid.cpm > 0) {
@@ -222,11 +225,11 @@ function sendBidResponseToGa(bid) {
         var cpmDis = getCpmDistribution(bid.cpm);
         if (_enableDistribution) {
           _eventCount++;
-          window[_gaGlobal](_trackerSend, 'event', 'Prebid.js CPM Distribution', cpmDis, bidder, 1, _disableInteraction);
+          window[_gaGlobal](_trackerSend, 'event', 'Prebid.js CPM Distribution', cpmDis, getEventLabelFromBidder(bidder), 1, _disableInteraction);
         }
 
-        window[_gaGlobal](_trackerSend, 'event', _category, 'Bids', bidder, cpmCents, _disableInteraction);
-        window[_gaGlobal](_trackerSend, 'event', _category, 'Bid Load Time', bidder, bid.timeToRespond, _disableInteraction);
+        window[_gaGlobal](_trackerSend, 'event', _category, 'Bids', getEventLabelFromBid(bid), cpmCents, _disableInteraction);
+        window[_gaGlobal](_trackerSend, 'event', _category, 'Bid Load Time', getEventLabelFromBid(bid), bid.timeToRespond, _disableInteraction);
       }
     });
   }
@@ -240,7 +243,7 @@ function sendBidTimeouts(timedOutBidders) {
   _analyticsQueue.push(function () {
     utils._each(timedOutBidders, function (bidderCode) {
       _eventCount++;
-      window[_gaGlobal](_trackerSend, 'event', _category, 'Timeouts', bidderCode, _disableInteraction);
+      window[_gaGlobal](_trackerSend, 'event', _category, 'Timeouts', getEventLabelFromBidder(bidderCode), _disableInteraction);
     });
   });
 
@@ -251,8 +254,18 @@ function sendBidWonToGa(bid) {
   var cpmCents = convertToCents(bid.cpm);
   _analyticsQueue.push(function () {
     _eventCount++;
-    window[_gaGlobal](_trackerSend, 'event', _category, 'Wins', bid.bidderCode, cpmCents, _disableInteraction);
+    window[_gaGlobal](_trackerSend, 'event', _category, 'Wins', getEventLabelFromBid(bid), cpmCents, _disableInteraction);
   });
 
   checkAnalytics();
+}
+
+// Adds PageType and adUnit size in addition to bidderCode
+function getEventLabelFromBid(bid) {
+    return "dfpPage: " + Gtau.Global.variables.dfpPage + ", bidderCode: " + bid.bidderCode + ", adUnitSize: " + bid.width + "x" + bid.height;
+}
+
+// Adds PageType in addition to bidderCode
+function getEventLabelFromBidder(bidderCode) {
+    return "dfpPage: " + Gtau.Global.variables.dfpPage + ", bidderCode: " + bidderCode;
 }
